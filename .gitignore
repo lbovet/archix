@@ -3,3 +3,4 @@ target
 .vscode
 archix.js*
 index.js*
+*.log

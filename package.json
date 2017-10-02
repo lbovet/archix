@@ -11,7 +11,8 @@
     "index.js",
     "archix.js",
     "archix.d.ts",
-    "style.css"
+    "style.css",
+    "legend.svg"
   ],
   "devDependencies": {
     "@types/node": "^8.0.31",
