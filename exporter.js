@@ -8,8 +8,8 @@
             module.exports = archix;
         });
         System.import('index.ts').then(() => { 
-            var legend = document.getElementById('legend')
-            if(legend) legend.innerHTML = "<a name='legend'><img src='../archix/legend.svg'/></a>";
+            var legend = document.getElementById('archix-legend')
+            if(legend) legend.style.display = 'block';
         }, console.error.bind(console));
     }
 })();
