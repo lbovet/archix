@@ -1,0 +1,27 @@
+{
+  "name": "archix",
+  "version": "0.1.0",
+  "description": "Quick Software Architecture Diagrams",
+  "main": "archix.js",
+  "scripts": {
+    "clean": "rimraf archix.js index.js",
+    "build": "tsc -p tsconfig.json && browserify exporter.js -o index.js --ignore fs --ignore child_process"
+  },
+  "files": [
+    "index.js",
+    "archix.js",
+    "archix.d.ts",
+    "style.css"
+  ],
+  "devDependencies": {
+    "@types/node": "^8.0.31",
+    "browserify": "^14.4.0",
+    "rimraf": "latest"
+  },
+  "dependencies": {
+    "viz.js": "^1.8.0",
+    "typescript": "^2.5.3"
+  },
+  "author": "Laurent Bovet <laurent.bovet@windmaster.ch>",
+  "license": "MIT"
+}

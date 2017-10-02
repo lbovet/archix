@@ -1,0 +1,10 @@
+body { 
+  font-family: Helvetica,sans-serif;
+  font-size: 10px;
+}
+#archix table td, #archix table th {
+  padding: 20px;  
+}
+#archix {
+  margin-bottom: 20px;
+}

@@ -1,0 +1,25 @@
+digraph {
+ graph [ fontname = helvetica, nodesep = 0.5, label = <legend<BR/><BR/><BR/>>, labelloc=top, fontcolor = grey20, bgcolor = white, labeljust=left, fontsize = 10 ]
+ node [ fontname = helvetica, shape = box, style = "filled,rounded", color = bisque4, fontcolor = grey20, fillcolor = white, fontsize = 14 ]
+ edge [ fontname = helvetica, color = "bisque4" , fontsize = 10 ]
+ process_131 [ label = <<TABLE BORDER="0"><TR><TD>manager</TD></TR><TR><TD><FONT POINT-SIZE="10"> </FONT></TD></TR></TABLE>> ];
+ process_132 [ label = <<TABLE BORDER="0"><TR><TD>instance</TD></TR><TR><TD><FONT POINT-SIZE="10"> </FONT></TD></TR></TABLE>> ];
+ process_134x [ label = <<TABLE BORDER="0"><TR><TD>multiple<BR/>instances</TD></TR></TABLE>>, fillcolor=bisque ];
+ process_132x [ label = <<TABLE BORDER="0"><TR><TD>registry</TD></TR><TR><TD><FONT POINT-SIZE="10"> </FONT></TD></TR></TABLE>> ];
+ subgraph cluster_host_140 {
+   graph [ label="host", penwidth = 2, color = lightcyan3, fillcolor=invis ,style=filled ];
+   process_138 [ label = <<TABLE BORDER="0"><TR><TD>instance</TD></TR><TR><TD><FONT POINT-SIZE="10"> </FONT></TD></TR></TABLE>> ];
+ } 
+ subgraph cluster_host_141 {
+   graph [ label="cluster", penwidth = 2, color = lightcyan3, fillcolor=lightcyan2 ,style=filled ];
+   process_138x [ label = <<TABLE BORDER="0"><TR><TD>instance</TD></TR><TR><TD><FONT POINT-SIZE="10"> </FONT></TD></TR></TABLE>> ];
+ }
+ { rank = same process_131 process_132 process_138 }
+ { rank = same process_134x process_138x }
+ process_131 -> process_132 [ label = "deploys", style = "dotted" ]
+ process_132 -> process_138 [ label = "connection" ]
+ process_132 -> process_134x [ color = "bisque4:bisque4", label = "  load balanced connection" ];
+ process_138 -> process_138x [ color = "bisque4:bisque4" ];
+ process_134x -> process_132x [ color = deepskyblue4, style = dashed, label="  discover/register" ];
+ process_134x -> process_138x [ color = deepskyblue4, label = <connection to<BR/>discovered> ];
+}
