@@ -101,7 +101,7 @@ export function system(name: String) {
 
 export class Instance extends Node {
     name?: string;
-    details: string = ' ';
+    details: string;
     host: Host;
     constructor(name: string, groupId?: GroupId) {
         super("instance", groupId);
@@ -125,7 +125,8 @@ export class Instance extends Node {
         return new Link(this, target).registry();
     }
     render(pad: string) {
-        return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR><TR><TD><FONT POINT-SIZE="10">${this.details}</FONT></TD></TR></TABLE>>`
+        var details = this.details ? `<TR><TD><FONT POINT-SIZE="10">${this.details}</FONT></TD></TR>` : "";
+        return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${details}</TABLE>>`
             +(this.isMultiple?`, fillcolor=${colors[0]}`:"")+" ];\n";
     }
     isActuallyMultiple(): boolean {
