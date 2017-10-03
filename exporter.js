@@ -1,6 +1,6 @@
 (()=> {
     if(typeof System !== 'undefined') {
-        var archix = require('./archix');
+        var archix = require('./index');
         System.config({
             transpiler: 'typescript',
         });

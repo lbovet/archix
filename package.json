@@ -1,16 +1,16 @@
 {
   "name": "archix",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Quick Software Architecture Diagrams",
   "main": "archix.js",
   "scripts": {
     "clean": "rimraf archix.js index.js",
-    "build": "tsc -p tsconfig.json && browserify exporter.js -o index.js --ignore fs --ignore child_process"
+    "build": "tsc -p tsconfig.json && browserify exporter.js -o archix.js --ignore fs --ignore child_process"
   },
   "files": [
     "index.js",
     "archix.js",
-    "archix.d.ts",
+    "index.d.ts",
     "legend.svg"
   ],
   "devDependencies": {
