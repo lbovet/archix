@@ -1,8 +1,8 @@
 {
   "name": "archix",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Quick Software Architecture Diagrams",
-  "main": "archix.js",
+  "main": "index.js",
   "scripts": {
     "clean": "rimraf archix.js index.js",
     "build": "tsc -p tsconfig.json && browserify exporter.js -o archix.js --ignore fs --ignore child_process"
