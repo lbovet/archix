@@ -83,9 +83,9 @@ class System extends Container {
     }
     render(pad: string) {
         return "digraph {\n"+
-            ` graph [ fontname = helvetica, nodesep = 0.5, label = <${this.name}<BR/><BR/><BR/>>, labelloc=top, fontcolor = ${colors[4]}, bgcolor = ${colors[5]}, labeljust=left, fontsize = 10 ]\n`+
-            ` node [ fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[4]}, fillcolor = ${colors[5]}, fontsize = 14 ]\n`+
-            ` edge [ fontname = helvetica, color = "${colors[1]}" , fontsize = 10 ]\n`+
+            ` graph [ tooltip = " ", fontname = helvetica, nodesep = 0.5, label = <${this.name}<BR/><BR/><BR/>>, labelloc=top, fontcolor = ${colors[4]}, bgcolor = ${colors[5]}, labeljust=left, fontsize = 10 ]\n`+
+            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[4]}, fillcolor = ${colors[5]}, fontsize = 14 ]\n`+
+            ` edge [ tooltip = " ", fontname = helvetica, color = "${colors[1]}" , fontsize = 10 ]\n`+
             this.renderContent(pad+" ")+
             Array.from(this.groups.values()).map(group => group.render(pad+" ")).join("")+
             this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";       
@@ -221,7 +221,7 @@ export class Host extends Node {
     }
     render(pad: string) {
         return pad+"subgraph cluster_"+String(this.id)+" {\n"+
-            pad+` graph [ label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
+            pad+` graph [ tooltip = " ", label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
             this.instances.map(instance => instance.render(pad+" "))+
             pad+"}\n";
     }
