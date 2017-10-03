@@ -10,8 +10,7 @@
   "files": [
     "index.js",
     "archix.js",
-    "index.d.ts",
-    "legend.svg"
+    "index.d.ts"
   ],
   "devDependencies": {
     "@types/node": "^8.0.31",
