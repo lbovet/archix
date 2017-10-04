@@ -239,7 +239,7 @@ export class Host extends Node {
     render(pad: string) {
         return pad+"subgraph cluster_"+String(this.id)+" {\n"+
             pad+` graph [ tooltip = " ", label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
-            this.instances.map(instance => instance.render(pad+" "))+
+            this.instances.map(instance => instance.render(pad+" ")).join("")+
             pad+"}\n";
     }
 }
