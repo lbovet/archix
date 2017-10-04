@@ -1,36 +1,36 @@
-declare interface GroupId {}
-declare interface Node {}
+declare module "archix" {
+    interface GroupId {}
+    interface Node {}
 
-export declare class Instance implements Node {
-    constructor(name: string, groupId?: GroupId);
-    label(details?: string): Instance;
-    multiple() : Instance;
-    to(target : Instance) : Link;
-    with(target : Instance) : Link;
-    registry(target : Instance) : Link;
+    class Instance implements Node {
+        constructor(name: string, groupId?: GroupId);
+        label(details?: string): Instance;
+        multiple() : Instance;
+        to(target : Instance) : Link;
+        with(target : Instance) : Link;
+        registry(target : Instance) : Link;
+        on(host: Host): Instance; 
+    }
+
+    class Host implements Node {
+        multiple() : Host;
+        constructor(groupId?: GroupId);
+    }
+
+    interface Link {
+            to(instance: Instance) : Link;
+            bidirectional();
+            discovered();
+            deploy();
+            single();        
+    }
+
+    interface System {       
+        is(...links: Link[]): System;
+    }
+
+    function system(name: string): System;
+    function group(): GroupId;
+    function technology(name: string, labels: Array<[Instance|Instance[],string]>): string;
+    function generate(init: ()=>void, systemProviders: (()=>System)[], processors?: (()=>string)[], opts?);
 }
-
-export declare class Host implements Node {
-    contains(...instances: Instance[]);
-    multiple() : Host;
-    constructor(groupId?: GroupId);
-}
-
-export declare interface Link {
-        bidirectional();
-        registry();
-        discovered();
-        deploy();
-        single();
-}
-
-export declare interface System {        
-    contains(...nodes: Node[]): System;
-    links(...links: Link[]): System;
-    qualify(qualifier: String): System;
-}
-
-export declare function system(name: String): System;
-export declare function group(): GroupId;
-export function technology(name: string, labels: Array<[Instance,string]>): string;
-export declare function generate(init: ()=>void, processors: (()=>string)[], systemProviders: (()=>System)[], opts?);

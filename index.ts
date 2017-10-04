@@ -55,30 +55,36 @@ class Group extends Container {
 }
 
 class System extends Container {
-    name: String;
+    name: string;
     groups: Map<GroupId,Group> = new Map();
     allLinks: Link[] = [];        
-    constructor(name: String) {
+    constructor(name: string) {
         super();
         this.name = name;
     }
-    contains(...nodes: Node[]) {
-        nodes.forEach( node => {
-            if(node.groupId) {
-                var group = this.groups.get(node.groupId);
-                if(!group) {
-                    group = new Group();
-                    this.groups.set(node.groupId, group);
-                }
-                group.add(node);
-            } else {
-                this.add(node);
+    private addNode(node: Node) {
+        if(node instanceof Instance && node.host) {
+            this.addNode(node.host);
+        }
+        if(node.groupId) {
+            var group = this.groups.get(node.groupId);
+            if(!group) {
+                group = new Group();
+                this.groups.set(node.groupId, group);
             }
-        });
-        return this;
+            group.add(node);
+        } else {
+            this.add(node);
+        }
     }
-    links(...links: Link[]) {
-        this.allLinks.push(...links);
+    is(...links: Link[]) {
+        links.forEach( link => {
+            link.chain.forEach( link => {
+                this.addNode(link.source);
+                this.addNode(link.target);
+                this.allLinks.push(link)
+            });
+        });
         return this;
     }
     render(pad: string) {
@@ -90,12 +96,8 @@ class System extends Container {
             Array.from(this.groups.values()).map(group => group.render(pad+" ")).join("")+
             this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";       
     }
-    qualify(qualifier: String) {
-        this.name = this.name + "-"+qualifier;
-        return this;
-    }
 }
-export function system(name: String) {
+export function system(name: string) {
     return new System(name);
 }
 
@@ -124,6 +126,10 @@ export class Instance extends Node {
     registry(target : Instance) : Link {
         return new Link(this, target).registry();
     }
+    on(host: Host) : Instance {
+        host.contains(this);
+        return this;
+    }
     render(pad: string) {
         var details = this.details ? `<TR><TD><FONT POINT-SIZE="10">${this.details}</FONT></TD></TR>` : "";
         return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${details}</TABLE>>`
@@ -138,23 +144,24 @@ class Link extends Element {
     source : Instance;
     target : Instance;
     isBidirectional: boolean;
-    backwards: boolean;
     isRegistry: boolean;
     isMultiple: boolean;
     isDeploy: boolean;
     isDiscovered: boolean;
+    chain: Link[] = [];
     constructor(source : Instance, target : Instance) {
         super();
         this.isMultiple = target.isActuallyMultiple()
-        if(source.id < target.id) {
-            this.source = source;
-            this.target = target;
-        } else {
-            this.source = target;
-            this.target = source;
-            this.backwards = true;
-        }
+        this.source = source;
+        this.target = target;
+        this.chain.push(this);
     }
+    to(next: Instance) : Link {
+        var link = this.target.to(next);
+        this.chain.push(link);
+        link.chain = this.chain;
+        return link;
+    } 
     bidirectional() {
         this.isBidirectional = true;
         this.isMultiple = this.target.isActuallyMultiple() || this.source.isActuallyMultiple();
@@ -177,9 +184,18 @@ class Link extends Element {
     }
     render(pad: string) {
         var options = [];
+        var source, target, backwards;
+        if(this.source.id < this.target.id) {
+            source = this.source;
+            target = this.target;
+        } else {
+            source = this.target;
+            target = this.source;
+            backwards = true;
+        }
         if(this.isBidirectional) {
             options.push("dir = both");
-        } else if(this.backwards) {
+        } else if(backwards) {
             options.push("dir = back");
         }
         if(this.isRegistry) {
@@ -198,7 +214,7 @@ class Link extends Element {
                 options.push(`color = "${color}"`);
             }
         }
-        return pad+String(this.source.id) +" -> "+String(this.target.id)+" [ "+
+        return pad+String(source.id) +" -> "+String(target.id)+" [ "+
         options.join(", ")+
         " ];\n";
     }
@@ -228,8 +244,9 @@ export class Host extends Node {
     }
 }
 
-export function generate(init: ()=>void, processors: (()=>string)[], systemProviders: (()=>System)[], opts?) {
+export function generate(init: ()=>void, systemProviders: (()=>System)[], processors?: (()=>string)[], opts?) {
     opts = opts || {};
+    processors = processors || [(() => null)];
     var header = ["<table class='archix-table'>"];
     if(opts.header) {
         header.push("<tr><th></th>");
@@ -244,11 +261,20 @@ export function generate(init: ()=>void, processors: (()=>string)[], systemProvi
         processors.forEach(processor => {      
             init();
             var procName = processor();
-            var sys = systemProvider();
+            var sys = systemProvider();            
             var sysName = sys.name;
-            sys.qualify(procName);
+            if(procName) {
+                sys.name += ("-"+procName);
+            }
             var name = sys.name;
-            var dot = sys.render("");                  
+            if(systemProviders.length == 1) {
+                if(processors.length == 1) {
+                    sys.name = " "
+                } else if(processors.length > 1) {
+                    sys.name = procName;
+                }
+            }
+            var dot = sys.render("");        
             var out = "target";     
             if(typeof window !== 'undefined') {
                 if(opts.header) {
@@ -294,10 +320,15 @@ export function generate(init: ()=>void, processors: (()=>string)[], systemProvi
     }
 }
 
-export function technology(name: string, labels: Array<[Instance,string]>): String {
+export function technology(name: string, labels: Array<[Instance|Instance[],string]>): string {    
     labels.forEach( pair => {
-        pair[0].label(pair[1]);
-    })
+        var target = pair[0];
+        if(target instanceof Instance) {
+            target.label(pair[1]);
+        } else {
+            target.forEach( instance => instance.label(pair[1]));
+        }        
+    });
     return name;
 }
 
