@@ -333,9 +333,9 @@ export function technology(name: string, labels: Array<[Instance|Instance[],stri
         var target = pair[0];
         if(target instanceof Instance) {
             target.label(pair[1]);
-        } else {
+        } else if(target) {
             target.forEach( instance => instance.label(pair[1]));
-        }        
+        }
     });
     return name;
 }
