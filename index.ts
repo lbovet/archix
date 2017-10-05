@@ -187,6 +187,7 @@ class Link extends Element {
     }
     single() {
         this.isMultiple = false;
+        return this;
     }
     render(pad: string) {
         var options = [];
