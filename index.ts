@@ -58,6 +58,7 @@ class System extends Container {
     name: string;
     groups: Map<GroupId,Group> = new Map();
     allLinks: Link[] = [];        
+    processors: (()=>string)[];
     constructor(name: string) {
         super();
         this.name = name;
@@ -85,6 +86,10 @@ class System extends Container {
                 this.allLinks.push(link)
             });
         });
+        return this;
+    }
+    only(...processors: (()=>string)[]): System {
+        this.processors = processors;
         return this;
     }
     render(pad: string) {
@@ -276,6 +281,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
             }
             var dot = sys.render("");        
             var out = "target";     
+            var rendered = !sys.processors || sys.processors.indexOf(processor) !== -1
             if(typeof window !== 'undefined') {
                 if(opts.header) {
                     if(row == 0) {
@@ -286,14 +292,16 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                     }
                 }
                 table.push("<td>");
-                table.push(Viz(dot));
+                if(rendered) {
+                    table.push(Viz(dot));
+                }
                 table.push("</td>");                
-            } else if(!opts.native) {
+            } else if(!opts.native && rendered) {
                 try {
                     fs.mkdirSync(out);
                 } catch(e) {}
                 fs.writeFileSync(`${out}/${name}.svg`, Viz(dot));
-            } else {
+            } else if (rendered) {
                 fs.writeFileSync(`${out}/${name}.dot`, dot);
                 exec(`dot -Tpng -o ${out}/${name}.png ${out}/${name}.dot`, 
                     (err, stdout, stderr) => {

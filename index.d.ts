@@ -121,6 +121,11 @@ declare module "archix" {
          * Declare the links in this system.
          */
         is(...links: Link[]): System;
+
+        /**
+         * Instructs the generator to use only these processors for this system.
+         */
+        only(...processors: (()=>string)[]): System;
     }
 
     /**
