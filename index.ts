@@ -108,14 +108,15 @@ export function system(name: string) {
 
 export class Instance extends Node {
     name?: string;
-    details: string;
+    label: string;
     host: Host;
     constructor(name: string, groupId?: GroupId) {
         super("instance", groupId);
         this.name = name;
     }
-    label(details?: string): Instance {
-        this.details = details;
+    details(text?: string): Instance {
+        this.label = this.label || "";
+        this.label += text;
         return this;
     }
     multiple() : Instance {
@@ -136,8 +137,8 @@ export class Instance extends Node {
         return this;
     }
     render(pad: string) {
-        var details = this.details ? `<TR><TD><FONT POINT-SIZE="10">${this.details}</FONT></TD></TR>` : "";
-        return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${details}</TABLE>>`
+        var label = this.label ? `<TR><TD><FONT POINT-SIZE="10">${this.label}</FONT></TD></TR>` : "";
+        return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${label}</TABLE>>`
             +(this.isMultiple?`, fillcolor=${colors[0]}`:"")+" ];\n";
     }
     isActuallyMultiple(): boolean {
@@ -332,9 +333,9 @@ export function technology(name: string, labels: Array<[Instance|Instance[],stri
     labels.forEach( pair => {
         var target = pair[0];
         if(target instanceof Instance) {
-            target.label(pair[1]);
+            target.details(pair[1]);
         } else if(target) {
-            target.forEach( instance => instance.label(pair[1]));
+            target.forEach( instance => instance.details(pair[1]));
         }
     });
     return name;

@@ -17,9 +17,9 @@ declare module "archix" {
         /**
          * Gives more information about this instance, typically its technology.
          * 
-         * @param details The label string, use <BR/> for new lines.
+         * @param details The label string to add, use <BR/> for new lines.
          */
-        label(details?: string): Instance;
+        details(text?: string): Instance;
 
         /**
          * Marks this instance as being part of a set of replicated instances (scalability). 
