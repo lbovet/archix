@@ -129,8 +129,11 @@ export class Instance extends Node {
     with(target : Instance) : Link {
         return new Link(this, target).bidirectional();
     }
-    registry(target : Instance) : Link {
-        return new Link(this, target).registry();
+    configuration(target : Instance) : Link {
+        return new Link(this, target).configuration();
+    }
+    creates(target: Instance) : Link {
+        return new Link(this, target).creation();
     }
     on(host: Host) : Instance {
         host.contains(this);
@@ -150,10 +153,10 @@ class Link extends Element {
     source : Instance;
     target : Instance;
     isBidirectional: boolean;
-    isRegistry: boolean;
+    isConfiguration: boolean;
     isMultiple: boolean;
-    isDeploy: boolean;
-    isDiscovered: boolean;
+    isCreation: boolean;
+    isDynamic: boolean;
     chain: Link[] = [];
     constructor(source : Instance, target : Instance) {
         super();
@@ -173,16 +176,16 @@ class Link extends Element {
         this.isMultiple = this.target.isActuallyMultiple() || this.source.isActuallyMultiple();
         return this;
     }
-    registry() {
-        this.isRegistry = true;
+    configuration() {
+        this.isConfiguration = true;
         return this;
     }
-    discovered() {
-        this.isDiscovered = true;
+    dynamic() {
+        this.isDynamic = true;
         return this;
     }
-    deploy() {
-        this.isDeploy = true;
+    creation() {
+        this.isCreation = true;
         return this;
     }
     single() {
@@ -205,16 +208,16 @@ class Link extends Element {
         } else if(backwards) {
             options.push("dir = back");
         }
-        if(this.isRegistry) {
+        if(this.isConfiguration) {
             options.push("style = dashed");
-        } else if(this.isDeploy) {
+        } else if(this.isCreation) {
             options.push("style = dotted");
         }
         var color = colors[1];
-        if(this.isRegistry || this.isDiscovered) {
+        if(this.isConfiguration || this.isDynamic) {
             color = colors[6];
         }        
-        if(this.isMultiple && !this.isDeploy) {
+        if(this.isMultiple && !this.isCreation) {
             options.push(`color = "${color}:${color}"`);
         } else {
             if(color != colors[1]) {
@@ -330,7 +333,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
     }
 }
 
-export function technology(name: string, labels: Array<[Instance|Instance[],string]>): string {    
+export function details(name: string, labels: Array<[Instance|Instance[],string]>): string {    
     labels.forEach( pair => {
         var target = pair[0];
         if(target instanceof Instance) {

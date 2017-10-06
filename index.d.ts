@@ -44,12 +44,18 @@ declare module "archix" {
         with(target : Instance) : Link;
 
         /**
-         * Declares another instance as being a registry for this instance.
+         * Declares another instance as being a configuration link for dynamic connections, e.g. registration or discovery.
          * 
          * @param target The registry instance. 
          * @return The declared link.
          */
-        registry(target : Instance) : Link;
+        configuration(target : Instance) : Link;
+
+        /**
+         * Declare another instance as being created by this instance, e.g. deployment or provisioning.
+         * @return This link for method chaining.
+         */
+        creates(target : Instance) : Link;
 
         /**
          * Declares this instance to be running on a host.
@@ -95,16 +101,10 @@ declare module "archix" {
             bidirectional();
 
             /**
-             * Marks this link as being discovered from the registry.
+             * Marks this link as being dynamically established, e.g. discovered from a registry.
              * @return This link for method chaining.
              */
-            discovered();
-
-            /**
-             * Marks this link as being a deployment.
-             * @return This link for method chaining.
-             */
-            deploy();
+            dynamic();
 
             /**
              * Force this link to be non-balanced.
@@ -142,19 +142,19 @@ declare module "archix" {
     function group(): GroupId;
 
     /**
-     * Declares a technology stack to add details label to instance.
+     * Convenience processsor to add details label to instances.
      * 
-     * @param name A name identifying the technology stack.
+     * @param name A name identifying the processor.
      * @param labels An array of array associating the instances to their labels.
      */
-    function technology(name: string, labels: Array<[Instance|Instance[],string]>): string;
+    function details(name: string, labels: Array<[Instance|Instance[],string]>): string;
 
     /**
      * Generates the diagrams.
      * 
      * @param init An initialization function run for each diagrams.
      * @param systemProviders An array of functions providing the systems.
-     * @param processors An array of functions providing alteration to the systems for variant (e.g. technology stacks). 
+     * @param processors An array of functions providing alteration to the systems for variant (e.g. details). 
      * @param opts Additional options: [native: boolean, if true uses a local graphviz installation].
      */
     function generate(init: ()=>void, systemProviders: (()=>System)[], processors?: (()=>string)[], opts?);
