@@ -9,5 +9,5 @@ var g2 = new Group("g2");
 
 generate(null, [ () =>
   system("test").
-    is(i1.on(h1).in(g1).to(i2.in(g2).on(h2)))
+    is(i1.on(h1).in(g1).to(i2.in(g2)))
 ]);

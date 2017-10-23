@@ -47,9 +47,9 @@ export class Group extends Container implements Nestable {
     parent: Group;
     name: string;
     render(pad: string) {
-        var style = name ?
-            `name="${name}", color=${colors[1]}` :
-            'name="", color=invis'
+        var style = this.name ?
+            `label="${this.name}", style=dashed, color=${colors[1]}` :
+            'label="", color=invis'
         return pad+"subgraph cluster_"+this.id+" {\n"+
         pad+' graph [ '+style+' ];\n'+
         this.renderContent(pad+" ")+
@@ -64,7 +64,6 @@ export class Group extends Container implements Nestable {
         return this;
     }
     add(node: Nestable) {
-        console.log('added', node);
         super.add(node);
         node.parent = this;
     }
@@ -79,9 +78,11 @@ class System extends Container {
         this.name = name;
     }
     private addNode(node: Nestable) {
+        console.log("adding", node)
         if(node instanceof Instance && node.host) {
             this.addNode(node.host);
         } else if(node.parent) {
+            console.log(node.parent)
             this.addNode(node.parent);
         } else {
             this.add(node);
