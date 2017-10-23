@@ -9,6 +9,12 @@ const themes = {
 
 var colors = themes.dark;
 
+interface Nestable {
+    parent: Group;
+    in(parent: Group);
+    render(pad: string): string;
+}
+
 abstract class Element {
     id: string;
     constructor(prefix?: string, name?: string) {
@@ -18,62 +24,65 @@ abstract class Element {
     abstract render(pad: string): string;
 }
 
-abstract class Node extends Element {
+abstract class Node extends Element implements Nestable {
     isMultiple: boolean;
-    groupId: GroupId;
-    constructor(prefix:string, groupId?: GroupId) {
+    parent: Group;
+    constructor(prefix:string) {
         super(prefix);
-        this.groupId = groupId;
     }
-}
-
-class GroupId { }
-export function group() {
-    return new GroupId();
+    abstract in(parent: Group);
 }
 
 abstract class Container extends Element {
-    nodes: Node[] = [];
-    add(node: Node) {
+    nodes: Nestable[] = [];
+    add(node: Nestable) {
         this.nodes.push(node);
     }
     renderContent(pad: string): string {
         return this.nodes.map(node => node.render(pad)).join("");
     }
-} 
+}
 
-class Group extends Container {
+export class Group extends Container implements Nestable {
+    parent: Group;
+    name: string;
     render(pad: string) {
+        var style = name ?
+            `name="${name}", color=${colors[1]}` :
+            'name="", color=invis'
         return pad+"subgraph cluster_"+this.id+" {\n"+
-        pad+' graph [ label = "", color = invis ];\n'+
+        pad+' graph [ '+style+' ];\n'+
         this.renderContent(pad+" ")+
         pad+"}\n";
     }
-    constructor() {
+    constructor(name?: string) {
         super("group");
+        this.name = name;
+    }
+    in(parent: Container): Group {
+        parent.add(this);
+        return this;
+    }
+    add(node: Nestable) {
+        console.log('added', node);
+        super.add(node);
+        node.parent = this;
     }
 }
 
 class System extends Container {
     name: string;
-    groups: Map<GroupId,Group> = new Map();
-    allLinks: Link[] = [];        
+    allLinks: Link[] = [];
     processors: (()=>string)[];
     constructor(name: string) {
         super();
         this.name = name;
     }
-    private addNode(node: Node) {
+    private addNode(node: Nestable) {
         if(node instanceof Instance && node.host) {
             this.addNode(node.host);
-        }
-        if(node.groupId) {
-            var group = this.groups.get(node.groupId);
-            if(!group) {
-                group = new Group();
-                this.groups.set(node.groupId, group);
-            }
-            group.add(node);
+        } else if(node.parent) {
+            this.addNode(node.parent);
         } else {
             this.add(node);
         }
@@ -98,8 +107,7 @@ class System extends Container {
             ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[4]}, fillcolor = invis, fontsize = 14 ]\n`+
             ` edge [ tooltip = " ", fontname = helvetica, color = "${colors[1]}" , fontsize = 10 ]\n`+
             this.renderContent(pad+" ")+
-            Array.from(this.groups.values()).map(group => group.render(pad+" ")).join("")+
-            this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";       
+            this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";
     }
 }
 export function system(name: string) {
@@ -110,8 +118,8 @@ export class Instance extends Node {
     name?: string;
     label: string;
     host: Host;
-    constructor(name: string, groupId?: GroupId) {
-        super("instance", groupId);
+    constructor(name: string) {
+        super("instance");
         this.name = name;
     }
     details(text?: string): Instance {
@@ -147,6 +155,10 @@ export class Instance extends Node {
     isActuallyMultiple(): boolean {
         return this.isMultiple || ( this.host && this.host.isMultiple);
     }
+    in(parent: Container): Instance {
+        parent.add(this);
+        return this;
+    }
 }
 
 class Link extends Element {
@@ -170,7 +182,7 @@ class Link extends Element {
         this.chain.push(link);
         link.chain = this.chain;
         return link;
-    } 
+    }
     bidirectional() {
         this.isBidirectional = true;
         this.isMultiple = this.target.isActuallyMultiple() || this.source.isActuallyMultiple();
@@ -216,7 +228,7 @@ class Link extends Element {
         var color = colors[1];
         if(this.isConfiguration || this.isDynamic) {
             color = colors[6];
-        }        
+        }
         if(this.isMultiple && !this.isCreation) {
             options.push(`color = "${color}:${color}"`);
         } else {
@@ -243,14 +255,18 @@ export class Host extends Node {
         this.isMultiple = true;
         return this;
     }
-    constructor(groupId?: GroupId) {
-        super("host", groupId);
+    constructor() {
+        super("host");
     }
     render(pad: string) {
         return pad+"subgraph cluster_"+String(this.id)+" {\n"+
             pad+` graph [ tooltip = " ", label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
             this.instances.map(instance => instance.render(pad+" ")).join("")+
             pad+"}\n";
+    }
+    in(parent: Container): Host {
+        parent.add(this);
+        return this;
     }
 }
 
@@ -268,10 +284,12 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
     }
     systemProviders.forEach( systemProvider => {
         var col = 0;
-        processors.forEach(processor => {      
-            init();
+        processors.forEach(processor => {
+            if(init) {
+              init();
+            }
             var procName = processor();
-            var sys = systemProvider();            
+            var sys = systemProvider();
             var sysName = sys.name;
             if(procName) {
                 sys.name += ("-"+procName);
@@ -284,8 +302,9 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                     sys.name = procName;
                 }
             }
-            var dot = sys.render("");        
-            var out = "target";     
+            var dot = sys.render("");
+            console.log(dot)
+            var out = "target";
             var rendered = !sys.processors || sys.processors.indexOf(processor) !== -1
             if(typeof window !== 'undefined') {
                 if(opts.header) {
@@ -300,7 +319,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                 if(rendered) {
                     table.push(Viz(dot));
                 }
-                table.push("</td>");                
+                table.push("</td>");
             } else if(!opts.native && rendered) {
                 try {
                     fs.mkdirSync(out);
@@ -308,7 +327,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                 fs.writeFileSync(`${out}/${name}.svg`, Viz(dot));
             } else if (rendered) {
                 fs.writeFileSync(`${out}/${name}.dot`, dot);
-                exec(`dot -Tpng -o ${out}/${name}.png ${out}/${name}.dot`, 
+                exec(`dot -Tpng -o ${out}/${name}.png ${out}/${name}.dot`,
                     (err, stdout, stderr) => {
                         if(err) {
                             console.error(err);
@@ -333,7 +352,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
     }
 }
 
-export function details(name: string, labels: Array<[Instance|Instance[],string]>): string {    
+export function details(name: string, labels: Array<[Instance|Instance[],string]>): string {
     labels.forEach( pair => {
         var target = pair[0];
         if(target instanceof Instance) {
@@ -344,4 +363,3 @@ export function details(name: string, labels: Array<[Instance|Instance[],string]
     });
     return name;
 }
-

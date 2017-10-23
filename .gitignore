@@ -4,3 +4,4 @@ target
 archix.js*
 index.js*
 *.log
+*/*.js
