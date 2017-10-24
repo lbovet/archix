@@ -3,8 +3,8 @@ import {exec} from "child_process";
 var Viz: (string)=>string = require('viz.js')
 
 const themes = {
-    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "grey20", "white", "deepskyblue4"],
-    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "grey90", "grey12", "aquamarine"]
+    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "lightcyan4", "white", "deepskyblue4"],
+    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "lightcyan3", "grey12", "aquamarine"]
 }
 
 var colors = themes.dark;
@@ -48,7 +48,7 @@ export class Group extends Container implements Nestable {
     name: string;
     render(pad: string) {
         var style = this.name ?
-            `label="${this.name}", style=dashed, color=${colors[1]}` :
+            `label="${this.name}", style=dashed, color=${colors[3]}, fontcolor=${colors[4]}` :
             'label="", color=invis'
         return pad+"subgraph cluster_"+this.id+" {\n"+
         pad+' graph [ '+style+' ];\n'+
@@ -59,7 +59,7 @@ export class Group extends Container implements Nestable {
         super("group");
         this.name = name;
     }
-    in(parent: Container): Group {
+    in(parent: Group): Group {
         parent.add(this);
         return this;
     }
@@ -78,11 +78,9 @@ class System extends Container {
         this.name = name;
     }
     private addNode(node: Nestable) {
-        console.log("adding", node)
         if(node instanceof Instance && node.host) {
             this.addNode(node.host);
         } else if(node.parent) {
-            console.log(node.parent)
             this.addNode(node.parent);
         } else {
             this.add(node);
@@ -105,8 +103,8 @@ class System extends Container {
     render(pad: string) {
         return "digraph {\n"+
             ` graph [ tooltip = " ", fontname = helvetica, nodesep = 0.5, label = <${this.name}<BR/><BR/><BR/>>, labelloc=top, fontcolor = ${colors[4]}, bgcolor = ${colors[5]}, labeljust=left, fontsize = 10 ]\n`+
-            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[4]}, fillcolor = invis, fontsize = 14 ]\n`+
-            ` edge [ tooltip = " ", fontname = helvetica, color = "${colors[1]}" , fontsize = 10 ]\n`+
+            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[1]}, fillcolor = invis, fontsize = 14 ]\n`+
+            ` edge [ tooltip = " ", fontname = helvetica, fontcolor = "${colors[1]}", color = "${colors[1]}" , fontsize = 10 ]\n`+
             this.renderContent(pad+" ")+
             this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";
     }
@@ -145,24 +143,29 @@ export class Instance extends Node {
         return new Link(this, target).creation();
     }
     on(host: Host) : Instance {
+        if(this.parent) {
+            host.in(this.parent);
+        }
         host.contains(this);
         return this;
     }
     render(pad: string) {
         var label = this.label ? `<TR><TD><FONT POINT-SIZE="10">${this.label}</FONT></TD></TR>` : "";
         return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${label}</TABLE>>`
-            +(this.isMultiple?`, fillcolor=${colors[0]}`:"")+" ];\n";
+            +(this.isMultiple?`, fontcolor = ${colors[1]}, fillcolor = ${colors[0]}`:"")+" ];\n";
     }
     isActuallyMultiple(): boolean {
         return this.isMultiple || ( this.host && this.host.isMultiple);
     }
-    in(parent: Container): Instance {
-        parent.add(this);
+    in(parent: Group): Instance {
+        var member = this.host ? this.host : this;
+        parent.add(member);
         return this;
     }
 }
 
 class Link extends Element {
+    label: string;
     source : Instance;
     target : Instance;
     isBidirectional: boolean;
@@ -183,6 +186,10 @@ class Link extends Element {
         this.chain.push(link);
         link.chain = this.chain;
         return link;
+    }
+    name(label: string) {
+        this.label = " "+label+" ";
+        return this;
     }
     bidirectional() {
         this.isBidirectional = true;
@@ -226,9 +233,13 @@ class Link extends Element {
         } else if(this.isCreation) {
             options.push("style = dotted");
         }
+        if(this.label) {
+            options.push(`label = "${this.label}"`);
+        }
         var color = colors[1];
         if(this.isConfiguration || this.isDynamic) {
             color = colors[6];
+            options.push(`fontcolor = "${color}"`);
         }
         if(this.isMultiple && !this.isCreation) {
             options.push(`color = "${color}:${color}"`);
@@ -261,11 +272,11 @@ export class Host extends Node {
     }
     render(pad: string) {
         return pad+"subgraph cluster_"+String(this.id)+" {\n"+
-            pad+` graph [ tooltip = " ", label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
+            pad+` graph [ tooltip = " ", style=solid, label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
             this.instances.map(instance => instance.render(pad+" ")).join("")+
             pad+"}\n";
     }
-    in(parent: Container): Host {
+    in(parent: Group): Host {
         parent.add(this);
         return this;
     }
@@ -304,7 +315,6 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                 }
             }
             var dot = sys.render("");
-            console.log(dot)
             var out = "target";
             var rendered = !sys.processors || sys.processors.indexOf(processor) !== -1
             if(typeof window !== 'undefined') {

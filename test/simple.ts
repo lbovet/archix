@@ -7,7 +7,16 @@ var h2 = new Host();
 var g1 = new Group("g1");
 var g2 = new Group("g2");
 
-generate(null, [ () =>
-  system("test").
-    is(i1.on(h1).in(g1).to(i2.in(g2)))
+generate(
+    () => {
+        i1.on(h1);
+        h1.in(g1);
+        i2.multiple();
+        i2.in(g2);
+        i2.on(h2);
+        g1.in(g2);
+        h1.multiple();
+    },
+    [ () =>
+      system("test").is(i1.to(i2).name("n").configuration())
 ]);

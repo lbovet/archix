@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf archix.js index.js",
-    "build": "tsc -p tsconfig.json && browserify exporter.js -o archix.js --ignore fs --ignore child_process"
+    "build": "tsc -p tsconfig.json && browserify exporter.js -o archix.js --ignore fs --ignore child_process",
+    "test": "node_modules/.bin/tsc -p tsconfig.json && node test/simple.js"
   },
   "files": [
     "index.js",
