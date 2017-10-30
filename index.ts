@@ -3,11 +3,17 @@ import {exec} from "child_process";
 var Viz: (string)=>string = require('viz.js')
 
 const themes = {
-    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "grey20", "white", "deepskyblue4"],
-    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "grey90", "grey12", "aquamarine"]
+    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "\"#616f6f\"", "white", "deepskyblue4", "\"#534b40\""],
+    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "lightcyan3", "grey12", "aquamarine", "\"#FFF4E7\""]
 }
 
 var colors = themes.dark;
+
+interface Nestable {
+    parent: Group;
+    in(parent: Group);
+    render(pad: string): string;
+}
 
 abstract class Element {
     id: string;
@@ -18,62 +24,64 @@ abstract class Element {
     abstract render(pad: string): string;
 }
 
-abstract class Node extends Element {
+abstract class Node extends Element implements Nestable {
     isMultiple: boolean;
-    groupId: GroupId;
-    constructor(prefix:string, groupId?: GroupId) {
+    parent: Group;
+    constructor(prefix:string) {
         super(prefix);
-        this.groupId = groupId;
     }
-}
-
-class GroupId { }
-export function group() {
-    return new GroupId();
+    abstract in(parent: Group);
 }
 
 abstract class Container extends Element {
-    nodes: Node[] = [];
-    add(node: Node) {
+    nodes: Nestable[] = [];
+    add(node: Nestable) {
         this.nodes.push(node);
     }
     renderContent(pad: string): string {
         return this.nodes.map(node => node.render(pad)).join("");
     }
-} 
+}
 
-class Group extends Container {
+export class Group extends Container implements Nestable {
+    parent: Group;
+    name: string;
     render(pad: string) {
+        var style = this.name ?
+            `label="${this.name}", style=dashed, color=${colors[3]}, fontcolor=${colors[4]}` :
+            'label="", color=invis'
         return pad+"subgraph cluster_"+this.id+" {\n"+
-        pad+' graph [ label = "", color = invis ];\n'+
+        pad+' graph [ '+style+' ];\n'+
         this.renderContent(pad+" ")+
         pad+"}\n";
     }
-    constructor() {
+    constructor(name?: string) {
         super("group");
+        this.name = name;
+    }
+    in(parent: Group): Group {
+        parent.add(this);
+        return this;
+    }
+    add(node: Nestable) {
+        super.add(node);
+        node.parent = this;
     }
 }
 
 class System extends Container {
     name: string;
-    groups: Map<GroupId,Group> = new Map();
-    allLinks: Link[] = [];        
+    allLinks: Link[] = [];
     processors: (()=>string)[];
     constructor(name: string) {
         super();
         this.name = name;
     }
-    private addNode(node: Node) {
+    private addNode(node: Nestable) {
         if(node instanceof Instance && node.host) {
             this.addNode(node.host);
-        }
-        if(node.groupId) {
-            var group = this.groups.get(node.groupId);
-            if(!group) {
-                group = new Group();
-                this.groups.set(node.groupId, group);
-            }
-            group.add(node);
+        } else if(node.parent) {
+            this.addNode(node.parent);
         } else {
             this.add(node);
         }
@@ -95,11 +103,10 @@ class System extends Container {
     render(pad: string) {
         return "digraph {\n"+
             ` graph [ tooltip = " ", fontname = helvetica, nodesep = 0.5, label = <${this.name}<BR/><BR/><BR/>>, labelloc=top, fontcolor = ${colors[4]}, bgcolor = ${colors[5]}, labeljust=left, fontsize = 10 ]\n`+
-            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[4]}, fillcolor = invis, fontsize = 14 ]\n`+
-            ` edge [ tooltip = " ", fontname = helvetica, color = "${colors[1]}" , fontsize = 10 ]\n`+
+            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[7]}, fillcolor = invis, fontsize = 14 ]\n`+
+            ` edge [ tooltip = " ", fontname = helvetica, fontcolor = "${colors[1]}", color = "${colors[1]}" , fontsize = 10 ]\n`+
             this.renderContent(pad+" ")+
-            Array.from(this.groups.values()).map(group => group.render(pad+" ")).join("")+
-            this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";       
+            this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";
     }
 }
 export function system(name: string) {
@@ -110,8 +117,8 @@ export class Instance extends Node {
     name?: string;
     label: string;
     host: Host;
-    constructor(name: string, groupId?: GroupId) {
-        super("instance", groupId);
+    constructor(name: string) {
+        super("instance");
         this.name = name;
     }
     details(text?: string): Instance {
@@ -136,20 +143,29 @@ export class Instance extends Node {
         return new Link(this, target).creation();
     }
     on(host: Host) : Instance {
+        if(this.parent) {
+            host.in(this.parent);
+        }
         host.contains(this);
         return this;
     }
     render(pad: string) {
         var label = this.label ? `<TR><TD><FONT POINT-SIZE="10">${this.label}</FONT></TD></TR>` : "";
         return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${label}</TABLE>>`
-            +(this.isMultiple?`, fillcolor=${colors[0]}`:"")+" ];\n";
+            +(this.isMultiple?`, fontcolor = ${colors[7]}, fillcolor = ${colors[0]}`:"")+" ];\n";
     }
     isActuallyMultiple(): boolean {
         return this.isMultiple || ( this.host && this.host.isMultiple);
     }
+    in(parent: Group): Instance {
+        var member = this.host ? this.host : this;
+        parent.add(member);
+        return this;
+    }
 }
 
 class Link extends Element {
+    label: string;
     source : Instance;
     target : Instance;
     isBidirectional: boolean;
@@ -170,7 +186,11 @@ class Link extends Element {
         this.chain.push(link);
         link.chain = this.chain;
         return link;
-    } 
+    }
+    name(label: string) {
+        this.label = " "+label+" ";
+        return this;
+    }
     bidirectional() {
         this.isBidirectional = true;
         this.isMultiple = this.target.isActuallyMultiple() || this.source.isActuallyMultiple();
@@ -213,10 +233,14 @@ class Link extends Element {
         } else if(this.isCreation) {
             options.push("style = dotted");
         }
+        if(this.label) {
+            options.push(`label = "${this.label}"`);
+        }
         var color = colors[1];
         if(this.isConfiguration || this.isDynamic) {
             color = colors[6];
-        }        
+            options.push(`fontcolor = "${color}"`);
+        }
         if(this.isMultiple && !this.isCreation) {
             options.push(`color = "${color}:${color}"`);
         } else {
@@ -243,14 +267,18 @@ export class Host extends Node {
         this.isMultiple = true;
         return this;
     }
-    constructor(groupId?: GroupId) {
-        super("host", groupId);
+    constructor() {
+        super("host");
     }
     render(pad: string) {
         return pad+"subgraph cluster_"+String(this.id)+" {\n"+
-            pad+` graph [ tooltip = " ", label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
+            pad+` graph [ tooltip = " ", style=solid, label="", penwidth = 2, color = ${colors[3]}, fillcolor=${colors[2]} `+(this.isMultiple?',style=filled':'')+" ];\n"+
             this.instances.map(instance => instance.render(pad+" ")).join("")+
             pad+"}\n";
+    }
+    in(parent: Group): Host {
+        parent.add(this);
+        return this;
     }
 }
 
@@ -268,10 +296,12 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
     }
     systemProviders.forEach( systemProvider => {
         var col = 0;
-        processors.forEach(processor => {      
-            init();
+        processors.forEach(processor => {
+            if(init) {
+              init();
+            }
             var procName = processor();
-            var sys = systemProvider();            
+            var sys = systemProvider();
             var sysName = sys.name;
             if(procName) {
                 sys.name += ("-"+procName);
@@ -284,8 +314,8 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                     sys.name = procName;
                 }
             }
-            var dot = sys.render("");        
-            var out = "target";     
+            var dot = sys.render("");
+            var out = "target";
             var rendered = !sys.processors || sys.processors.indexOf(processor) !== -1
             if(typeof window !== 'undefined') {
                 if(opts.header) {
@@ -300,7 +330,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                 if(rendered) {
                     table.push(Viz(dot));
                 }
-                table.push("</td>");                
+                table.push("</td>");
             } else if(!opts.native && rendered) {
                 try {
                     fs.mkdirSync(out);
@@ -308,7 +338,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
                 fs.writeFileSync(`${out}/${name}.svg`, Viz(dot));
             } else if (rendered) {
                 fs.writeFileSync(`${out}/${name}.dot`, dot);
-                exec(`dot -Tpng -o ${out}/${name}.png ${out}/${name}.dot`, 
+                exec(`dot -Tpng -o ${out}/${name}.png ${out}/${name}.dot`,
                     (err, stdout, stderr) => {
                         if(err) {
                             console.error(err);
@@ -333,7 +363,7 @@ export function generate(init: ()=>void, systemProviders: (()=>System)[], proces
     }
 }
 
-export function details(name: string, labels: Array<[Instance|Instance[],string]>): string {    
+export function details(name: string, labels: Array<[Instance|Instance[],string]>): string {
     labels.forEach( pair => {
         var target = pair[0];
         if(target instanceof Instance) {
@@ -344,4 +374,3 @@ export function details(name: string, labels: Array<[Instance|Instance[],string]
     });
     return name;
 }
-

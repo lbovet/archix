@@ -1,5 +1,4 @@
 declare module "archix" {
-    interface GroupId {}
     interface Node {}
 
     /**
@@ -8,28 +7,27 @@ declare module "archix" {
     class Instance implements Node {
         /**
          * Creates an instance.
-         * 
+         *
          * @param name The role of this instance.
-         * @param groupId A group to gather instances together.
          */
-        constructor(name: string, groupId?: GroupId);
+        constructor(name: string);
 
         /**
          * Gives more information about this instance, typically its technology.
-         * 
+         *
          * @param details The label string to add, use <BR/> for new lines.
          */
         details(text?: string): Instance;
 
         /**
-         * Marks this instance as being part of a set of replicated instances (scalability). 
+         * Marks this instance as being part of a set of replicated instances (scalability).
          * @return This instance for method chaining.
          */
         multiple() : Instance;
 
         /**
          * Declares a connection to another instance this instance is using.
-         * 
+         *
          * @param target The other instance used by this instance.
          * @return The declared link.
          */
@@ -37,7 +35,7 @@ declare module "archix" {
 
         /**
          * Declares a bidirectional connection with another instance.
-         * 
+         *
          * @param target The other instance.
          * @return The declared link.
          */
@@ -45,8 +43,8 @@ declare module "archix" {
 
         /**
          * Declares another instance as being a configuration link for dynamic connections, e.g. registration or discovery.
-         * 
-         * @param target The registry instance. 
+         *
+         * @param target The registry instance.
          * @return The declared link.
          */
         configuration(target : Instance) : Link;
@@ -59,11 +57,19 @@ declare module "archix" {
 
         /**
          * Declares this instance to be running on a host.
-         * 
+         *
          * @param host The host which the instances runs on.
          * @return This instance for method chaining.
          */
-        on(host: Host): Instance; 
+        on(host: Host): Instance;
+
+        /**
+         * Include this instance into a group.
+         *
+         * @param parent the group to include this instance into.
+         * @return This instance for method chaining.
+         */
+        in(parent: Group): Instance;
     }
 
     /**
@@ -71,52 +77,78 @@ declare module "archix" {
      */
     class Host implements Node {
         /**
-         * Marks this host as being part of a set of replicated hosts (scalability). 
+         * Marks this host as being part of a set of replicated hosts (scalability).
          * @return This host for method chaining.
          */
         multiple() : Host;
 
         /**
          * Creates a host.
-         * 
-         * @param groupId A group to gather hosts together.
          */
-        constructor(groupId?: GroupId);
+        constructor();
+
+        /**
+         * Include this host into a group.
+         *
+         * @param parent the group to include this host into.
+         * @return This host for method chaining.
+         */
+        in(parent: Group): Host;
+    }
+
+    /**
+     * A context gathering instances and nodes.
+     */
+    class Group {
+        /**
+         * Creates a group.
+         * @param name the display name of the group. If absent, the group
+         * boundaries are invisible.
+         */
+        constructor(name?: string);
+
+        /**
+         * Include this group into another group.
+         *
+         * @param parent the group to include this group into.
+         * @return This group for method chaining.
+         */
+        in(parent: Group): Group;
     }
 
     /**
      * Represent a connection denoting the usage of an instance from another one.
      */
     interface Link {
-            /**
-             * Declare a connection from the current target instance to another instance it is using.
-             * @param next The instance this link's target uses.
-             */
-            to(next: Instance) : Link;
-            
-            /**
-             * Marks this link as bi-directional.
-             * @return This link for method chaining.
-             */
-            bidirectional();
+        /**
+         * Declare a connection from the current target instance to another instance it is using.
+         * @param next The instance this link's target uses.
+         */
+        to(next: Instance) : Link;
 
-            /**
-             * Marks this link as being dynamically established, e.g. discovered from a registry.
-             * @return This link for method chaining.
-             */
-            dynamic();
+        /**
+         * Marks this link as bi-directional.
+         * @return This link for method chaining.
+         */
+        bidirectional();
 
-            /**
-             * Force this link to be non-balanced.
-             * @return This link for method chaining.
-             */
-            single();        
+        /**
+         * Marks this link as being dynamically established, e.g. discovered from a registry.
+         * @return This link for method chaining.
+         */
+        dynamic();
+
+        /**
+         * Force this link to be non-balanced.
+         * @return This link for method chaining.
+         */
+        single();
     }
 
     /**
      * Represents a topology involving linked instances.
      */
-    interface System {       
+    interface System {
         /**
          * Declare the links in this system.
          */
@@ -130,20 +162,15 @@ declare module "archix" {
 
     /**
      * Declares a system.
-     * 
+     *
      * @param name A name identifying the topology.
      * @return A new system.
      */
     function system(name: string): System;
 
     /**
-     * Declares a group. A group makes belonging hosts and instance be drawn in the same area.
-     */
-    function group(): GroupId;
-
-    /**
      * Convenience processsor to add details label to instances.
-     * 
+     *
      * @param name A name identifying the processor.
      * @param labels An array of array associating the instances to their labels.
      */
@@ -151,10 +178,10 @@ declare module "archix" {
 
     /**
      * Generates the diagrams.
-     * 
-     * @param init An initialization function run for each diagrams.
+     *
+     * @param init An initialization function run for each diagrams. Can be null.
      * @param systemProviders An array of functions providing the systems.
-     * @param processors An array of functions providing alteration to the systems for variant (e.g. details). 
+     * @param processors An array of functions providing alteration to the systems for variant (e.g. details).
      * @param opts Additional options: [native: boolean, if true uses a local graphviz installation].
      */
     function generate(init: ()=>void, systemProviders: (()=>System)[], processors?: (()=>string)[], opts?);
