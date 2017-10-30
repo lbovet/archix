@@ -3,8 +3,8 @@ import {exec} from "child_process";
 var Viz: (string)=>string = require('viz.js')
 
 const themes = {
-    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "lightcyan4", "white", "deepskyblue4"],
-    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "lightcyan3", "grey12", "aquamarine"]
+    light: ["bisque", "bisque4", "lightcyan2", "lightcyan3", "\"#616f6f\"", "white", "deepskyblue4", "\"#534b40\""],
+    dark: ["\"#302315\"", "bisque", "darkslategray", "lightcyan4", "lightcyan3", "grey12", "aquamarine", "\"#FFF4E7\""]
 }
 
 var colors = themes.dark;
@@ -103,7 +103,7 @@ class System extends Container {
     render(pad: string) {
         return "digraph {\n"+
             ` graph [ tooltip = " ", fontname = helvetica, nodesep = 0.5, label = <${this.name}<BR/><BR/><BR/>>, labelloc=top, fontcolor = ${colors[4]}, bgcolor = ${colors[5]}, labeljust=left, fontsize = 10 ]\n`+
-            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[1]}, fillcolor = invis, fontsize = 14 ]\n`+
+            ` node [ tooltip = " ", fontname = helvetica, shape = box, style = "filled,rounded", color = ${colors[1]}, fontcolor = ${colors[7]}, fillcolor = invis, fontsize = 14 ]\n`+
             ` edge [ tooltip = " ", fontname = helvetica, fontcolor = "${colors[1]}", color = "${colors[1]}" , fontsize = 10 ]\n`+
             this.renderContent(pad+" ")+
             this.allLinks.map(link => link.render(pad+" ")).join("")+pad+"}";
@@ -152,7 +152,7 @@ export class Instance extends Node {
     render(pad: string) {
         var label = this.label ? `<TR><TD><FONT POINT-SIZE="10">${this.label}</FONT></TD></TR>` : "";
         return pad+this.id+` [ label = <<TABLE BORDER="0"><TR><TD>${this.name}</TD></TR>${label}</TABLE>>`
-            +(this.isMultiple?`, fontcolor = ${colors[1]}, fillcolor = ${colors[0]}`:"")+" ];\n";
+            +(this.isMultiple?`, fontcolor = ${colors[7]}, fillcolor = ${colors[0]}`:"")+" ];\n";
     }
     isActuallyMultiple(): boolean {
         return this.isMultiple || ( this.host && this.host.isMultiple);

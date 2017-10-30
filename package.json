@@ -1,6 +1,6 @@
 {
   "name": "archix",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Quick Software Architecture Diagrams",
   "main": "index.js",
   "scripts": {
